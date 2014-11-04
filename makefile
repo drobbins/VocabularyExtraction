@@ -1,4 +1,4 @@
-.PHONY: clean all temp
+.PHONY: clean all temp urlinate
 
 # Prefixes variable for insertion
 define PREFIXES
@@ -14,48 +14,62 @@ export PREFIXES
 # sqlFor generates sql for creating data triples (e.g :acanthoma a :Diagnosis)
 # Call it as $(call sqlFor,field,type,table)
 # e.g. $(call sqlFor,position,Position,voc_anatomic_site_position)
-sqlFor = "SELECT CONCAT_WS(' ', CONCAT(':', REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(LOWER($(1)),' ','_'),'/','-'), ')', ''), '(', ''), ',', '')), 'rdf:Type :$(2) ; rdfs:label', CONCAT('\"', $(1), '\"^^xsd:string '), '.') FROM $(3) WHERE 1"
+sqlFor = "SELECT CONCAT_WS(' ', URLINATE($(1)) COLLATE utf8_general_ci, 'rdf:type :$(2) ; rdfs:label', CONCAT('\"', $(1), '\"^^xsd:string '), '.') FROM $(3) WHERE 1"
+#sqlFor = "SELECT CONCAT_WS(' ', $(1), 'rdf:Type :$(2) ; rdfs:label', CONCAT('\"', $(1), '\"^^xsd:string '), '.') FROM $(3) WHERE 1"
 
 all: data.ttl
 
-data.ttl: sites.ttl subsites.ttl positions.ttl diagnoses.ttl categories.ttl modifiers.ttl
+data.trig: sites.ttl subsites.ttl positions.ttl diagnoses.ttl categories.ttl modifiers.ttl diagnosisModifiers.ttl siteSubsites.ttl
+	@echo "$$PREFIXES" > $@
+	cat ":Data { " $? | sed 's/_-_/-/g' >> $@
+	@echo " }" >> $@
+
+data.ttl: sites.ttl subsites.ttl positions.ttl diagnoses.ttl categories.ttl modifiers.ttl diagnosisModifiers.ttl siteSubsites.ttl
 	@echo "$$PREFIXES" > $@
 	cat $? | sed 's/_-_/-/g' >> $@
 
-sites.ttl:
+sites.ttl: urlinate
 	mysql -u root --password=password -D chtn --skip-column-names \
 		-e $(call sqlFor,site,Site,voc_anatomic_site) \
 		> $@
 
-subsites.ttl:
+subsites.ttl: urlinate
 	mysql -u root --password=password -D chtn --skip-column-names \
 		-e $(call sqlFor,subsite,Subsite,voc_anatomic_subsite) \
 		> $@
 
-positions.ttl:
+positions.ttl: urlinate
 	mysql -u root --password=password -D chtn --skip-column-names \
 		-e $(call sqlFor,position,Position,voc_anatomic_site_position) \
 		> $@
 
-diagnoses.ttl:
+diagnoses.ttl: urlinate
 	mysql -u root --password=password -D chtn --skip-column-names \
 		-e $(call sqlFor,dx,Diagnosis,voc_dx_list) \
 		> $@
 
-categories.ttl:
+categories.ttl: urlinate
 	mysql -u root --password=password -D chtn --skip-column-names \
 		-e $(call sqlFor,specimenCategory,Category,voc_specimen_category) \
 		> $@
 
-modifiers.ttl:
+modifiers.ttl: urlinate
 	mysql -u root --password=password -D chtn --skip-column-names \
 		-e $(call sqlFor,subDx,Modifier,voc_subdx_list) \
 		> $@
 
-diagnosisModifiers.ttl:
+diagnosisModifiers.ttl: urlinate
 	mysql -u root --password=password -D chtn --skip-column-names \
 		< diagnosisModifiers.sql \
 		> $@
+
+siteSubsites.ttl: urlinate
+	mysql -u root --password=password -D chtn --skip-column-names \
+		< siteSubsites.sql \
+		> $@
+
+urlinate:
+	mysql -u root --password=password -D chtn --skip-column-names < urlinate.sql
 
 temp:
 	echo $(call sqlFor,position,Position,voc_anatomic_site_position)

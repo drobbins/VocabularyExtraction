@@ -1,4 +1,4 @@
-SELECT CONCAT_WS(' ', CONCAT(':', REPLACE(LOWER(modifier),' ','_')), ':compatible', CONCAT(':', REPLACE(LOWER(diagnosis),' ','_')))
+SELECT CONCAT_WS(' ', URLINATE(modifier) COLLATE utf8_general_ci, ':compatible', URLINATE(diagnosis) COLLATE utf8_general_ci, '.')
 FROM (
 	SELECT `voc_dx_list`.`dx` AS `diagnosis`, `voc_subdx_list`.`subDx` AS `modifier`
 	FROM voc_dx_list, voc_subdx_list, vrel_dx_sdx
