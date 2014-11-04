@@ -18,12 +18,12 @@ data.ttl: sites.ttl subsites.ttl positions.ttl diagnoses.ttl categories.ttl modi
 
 sites.ttl:
 	mysql -u root --password=password -D chtn --skip-column-names \
-		-e "SELECT CONCAT_WS(' ', CONCAT(':', REPLACE(REPLACE(LOWER(site),' ','_'), '/', '-')), 'rdf:Type :Site ; rdfs:label', CONCAT('\"', site, '\"^^xsd:string '), '.') FROM voc_anatomic_site WHERE 1" \
+		< sites.sql \
 		> $@
 
 subsites.ttl:
 	mysql -u root --password=password -D chtn --skip-column-names \
-		-e "SELECT CONCAT_WS(' ', CONCAT(':', REPLACE(REPLACE(LOWER(subsite),' ','_'), '/', '-')), 'rdf:Type :Subsite ; rdfs:label', CONCAT('\"', subsite, '\"^^xsd:string '), '.') FROM voc_anatomic_subsite WHERE 1" \
+		< subsites.sql \
 		> $@
 
 positions.ttl:
