@@ -1,5 +1,6 @@
-.PHONY: clean all
+.PHONY: clean all temp
 
+# Prefixes variable for insertion
 define PREFIXES
 @prefix : <http://chtn.org/vocabulary/v2#> .
 @prefix owl: <http://www.w3.org/2002/07/owl#> .
@@ -10,6 +11,11 @@ define PREFIXES
 endef
 export PREFIXES
 
+# sqlFor generates sql for creating data triples (e.g :acanthoma a :Diagnosis)
+# Call it as $(call sqlFor,field,type,table)
+# e.g. $(call sqlFor,position,Position,voc_anatomic_site_position)
+sqlFor = "SELECT CONCAT_WS(' ', CONCAT(':', REPLACE(REPLACE(LOWER($(1)),' ','_'), '/', '-')), 'rdf:Type :$(2) ; rdfs:label', CONCAT('\"', $(1), '\"^^xsd:string '), '.') FROM $(3) WHERE 1"
+
 all: data.ttl
 
 data.ttl: sites.ttl subsites.ttl positions.ttl diagnoses.ttl categories.ttl modifiers.ttl
@@ -18,32 +24,32 @@ data.ttl: sites.ttl subsites.ttl positions.ttl diagnoses.ttl categories.ttl modi
 
 sites.ttl:
 	mysql -u root --password=password -D chtn --skip-column-names \
-		< sites.sql \
+		-e $(call sqlFor,site,Site,voc_anatomic_site) \
 		> $@
 
 subsites.ttl:
 	mysql -u root --password=password -D chtn --skip-column-names \
-		< subsites.sql \
+		-e $(call sqlFor,subsite,Subsite,voc_anatomic_subsite) \
 		> $@
 
 positions.ttl:
 	mysql -u root --password=password -D chtn --skip-column-names \
-		-e "SELECT CONCAT_WS(' ', CONCAT(':', REPLACE(REPLACE(LOWER(position),' ','_'), '/', '-')), 'rdf:Type :Position ; rdfs:label', CONCAT('\"', position, '\"^^xsd:string '), '.') FROM voc_anatomic_site_position WHERE 1" \
+		-e $(call sqlFor,position,Position,voc_anatomic_site_position) \
 		> $@
 
 diagnoses.ttl:
 	mysql -u root --password=password -D chtn --skip-column-names \
-		-e "SELECT CONCAT_WS(' ', CONCAT(':', REPLACE(REPLACE(LOWER(dx),' ','_'), '/', '-')), 'rdf:Type :Diagnosis ; rdfs:label', CONCAT('\"', dx, '\"^^xsd:string '), '.') FROM voc_dx_list WHERE 1" \
+		-e $(call sqlFor,dx,Diagnosis,voc_dx_list) \
 		> $@
 
 categories.ttl:
 	mysql -u root --password=password -D chtn --skip-column-names \
-		-e "SELECT CONCAT_WS(' ', CONCAT(':', REPLACE(REPLACE(LOWER(specimenCategory),' ','_'), '/', '-')), 'rdf:Type :Category ; rdfs:label', CONCAT('\"', specimenCategory, '\"^^xsd:string '), '.') FROM voc_specimen_category WHERE 1" \
+		-e $(call sqlFor,specimenCategory,Category,voc_specimen_category) \
 		> $@
 
 modifiers.ttl:
 	mysql -u root --password=password -D chtn --skip-column-names \
-		-e "SELECT CONCAT_WS(' ', CONCAT(':', REPLACE(REPLACE(LOWER(subDx),' ','_'), '/', '-')), 'rdf:Type :Modifier ; rdfs:label', CONCAT('\"', subDx, '\"^^xsd:string '), '.') FROM voc_subdx_list WHERE 1" \
+		-e $(call sqlFor,subDx,Modifier,voc_subdx_list) \
 		> $@
 
 diagnosisModifiers.ttl:
@@ -51,8 +57,8 @@ diagnosisModifiers.ttl:
 		< diagnosisModifiers.sql \
 		> $@
 
-temp.txt:
-	 temp.txt
+temp:
+	echo $(call sqlFor,position,Position,voc_anatomic_site_position)
 
 clean:
 	rm -rf *.ttl *.txt
