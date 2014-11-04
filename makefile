@@ -46,6 +46,11 @@ modifiers.ttl:
 		-e "SELECT CONCAT_WS(' ', CONCAT(':', REPLACE(REPLACE(LOWER(subDx),' ','_'), '/', '-')), 'rdf:Type :Modifier ; rdfs:label', CONCAT('\"', subDx, '\"^^xsd:string '), '.') FROM voc_subdx_list WHERE 1" \
 		> $@
 
+diagnosisModifiers.ttl:
+	mysql -u root --password=password -D chtn --skip-column-names \
+		< diagnosisModifiers.sql \
+		> $@
+
 temp.txt:
 	 temp.txt
 
